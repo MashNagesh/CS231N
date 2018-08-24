@@ -544,6 +544,119 @@ def conv_forward_naive(x, w, b, conv_param):
     - cache: (x, w, b, conv_param)
     """
     out = None
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    N,C,H,W =x.shape
+    # N- number of records
+    # c - channel
+    # H - height and W- width
+    npad = ((0, 0),(0,0), (pad,pad), (pad, pad))
+    padded_x = np.pad(x,pad_width = npad,mode ='constant', constant_values=0)
+    F,C,HH,WW = w.shape
+    H_out = 1 + (H + 2 * pad - HH) // stride
+    W_out = 1 + (W + 2 * pad - WW) // stride
+    N,C,H_new,W_new = padded_x.shape
+    output = []
+    counter = 0
+    for i in range(N):
+        for f in range(F):
+            new_out = []
+            for k in range(0,H_new-HH+1,stride):
+                for l in range(0,W_new-WW+1,stride):
+                    out1 = []
+                    for j in range(C):
+                        working_x = padded_x[i][j][k:k+HH,l:l+WW]
+                        working_f = w[f][j][:][:]
+                        out1.append(np.sum(working_x*working_f))
+                        counter +=1
+                    new_out.append(sum(out1)+b[f])
+            inter_array = np.array(new_out)
+            output.append(inter_array)
+        
+                    
+                    
+    # Stretching the vectors
+    # F - number of filters /C- channel/HH- Height/WW- width
+    ###########################################################################
+    # TODO: Implement the convolutional forward pass.                         #
+    # Hint: you can use the function np.pad for padding.                      #
+    ###########################################################################
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    cache = (x, w, b, conv_param)
+    out1 = np.array(output)
+    out1 =out1.ravel().reshape(N,F,H_out,W_out)
+    out = out1 
+    return out, cache
+
+
+def conv_forward_naive1(x, w, b, conv_param):
+    """
+    A naive implementation of the forward pass for a convolutional layer.
+
+    The input consists of N data points, each with C channels, height H and
+    width W. We convolve each input with F different filters, where each filter
+    spans all C channels and has height HH and width WW.
+
+    Input:
+    - x: Input data of shape (N, C, H, W)
+    - w: Filter weights of shape (F, C, HH, WW)
+    - b: Biases, of shape (F,)
+    - conv_param: A dictionary with the following keys:
+      - 'stride': The number of pixels between adjacent receptive fields in the
+        horizontal and vertical directions.
+      - 'pad': The number of pixels that will be used to zero-pad the input. 
+        
+
+    During padding, 'pad' zeros should be placed symmetrically (i.e equally on both sides)
+    along the height and width axes of the input. Be careful not to modfiy the original
+    input x directly.
+
+    Returns a tuple of:
+    - out: Output data, of shape (N, F, H', W') where H' and W' are given by
+      H' = 1 + (H + 2 * pad - HH) / stride
+      W' = 1 + (W + 2 * pad - WW) / stride
+    - cache: (x, w, b, conv_param)
+    """
+    out = None
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    N,C,H,W =x.shape
+    #C,H,W = x.shape
+    # N- number of records
+    # c - channel
+    # H - height and W- width
+    npad = ((0, 0),(0,0), (pad,pad), (pad, pad))
+    #padded_x = np.pad(x,pad_width = npad,mode ='constant', constant_values=0)
+    F,C,HH,WW = w.shape
+    H_out = 1 + (H + 2 * pad - HH) / stride
+    W_out = 1 + (W + 2 * pad - WW) / stride
+    #N,C,H_new,W_new = padded_x.shape
+    output = []
+    padded_x = x
+    N,C,H_new,W_new = padded_x.shape
+    print (b)
+    for i in range(N):
+        for f in range(F):
+            new_out = []
+            for k in range(0,H_new-stride,stride):
+                for l in range(0,W_new-stride,stride):
+                    out1 = []
+                    for j in range(C):
+                        #working_x = padded_x[i][j][k:k+HH,l:l+WW]
+                        working_x = padded_x[j][k:k+HH,l:l+WW]
+                        working_f = w[f][j][:][:]
+                        out1.append(np.sum(working_x*working_f))
+                    new_out.append(sum(out1)+b[f])
+            new_array =np.array(new_out)
+            new_array = new_array.reshape(3,3)
+            output.append(new_array)
+        
+                    
+                    
+    # Stretching the vectors
+    # F - number of filters /C- channel/HH- Height/WW- width
     ###########################################################################
     # TODO: Implement the convolutional forward pass.                         #
     # Hint: you can use the function np.pad for padding.                      #
@@ -553,9 +666,131 @@ def conv_forward_naive(x, w, b, conv_param):
     #                             END OF YOUR CODE                            #
     ###########################################################################
     cache = (x, w, b, conv_param)
+    out = np.array(output)
+    print (out)
     return out, cache
 
+def conv_backward_naive1(dout, cache):
+    """
+    A naive implementation of the backward pass for a convolutional layer.
 
+    Inputs:
+    - dout: Upstream derivatives.
+    - cache: A tuple of (x, w, b, conv_param) as in conv_forward_naive
+
+    Returns a tuple of:
+    - dx: Gradient with respect to x
+    - dw: Gradient with respect to w
+    - db: Gradient with respect to b
+    """
+    x, w, b, conv_param = cache
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    F, C, HH, WW = w.shape
+    N, C, H, W = x.shape
+    Hp = 1 + (H + 2 * pad - HH) // stride
+    Wp = 1 + (W + 2 * pad - WW) // stride
+    npad = ((0, 0),(0,0), (pad,pad), (pad, pad))
+    padded_x = np.pad(x,pad_width = npad,mode ='constant', constant_values=0)
+    dx = np.zeros_like(x)
+    dx_working = np.zeros_like(padded_x)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+    npad = ((0, 0),(0,0), (HH-1,WW-1), (HH-1, WW-1))
+    padded_dout = np.pad(dout,pad_width = npad,mode ='constant', constant_values=0)
+    N,C,H_new,W_new = padded_dout.shape
+    #Calculation of dx
+    for l in range(0,H_new-HH,stride):
+        for k in range(0,W_new-WW,stride):
+                        
+                        working_dout = padded_dout[0][0][l:l+HH,k:k+WW]
+                        working_w = w[0][0][:][:]
+                        working_w = (np.rot90(working_w,2))
+                        dx_working[0][0][l][k] = np.sum(working_w*working_dout)
+    
+    # Calculation of dw 
+    for l in range(0,H_new-H-1,stride):
+        for k in range(0,W_new-W-1,stride):
+            working_dout = dout[0][0][:][:]
+            working_x = padded_x[0][0][l:l+H,k:k+W]
+            dw[0][0][l][k] = np.sum(working_dout*working_x)
+    
+    db = np.sum(dout)
+    ###########################################################################
+    # TODO: Implement the convolutional backward pass.                        #
+    ###########################################################################
+    pass
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    dx = dx_working[0][0][HH-(HH-1):HH-(HH-1)+H,WW-(WW-1):WW-(WW-1)+W]
+    return dx, dw, db
+
+def conv_backward_naive2(dout, cache):
+    """
+    A naive implementation of the backward pass for a convolutional layer.
+
+    Inputs:
+    - dout: Upstream derivatives.
+    - cache: A tuple of (x, w, b, conv_param) as in conv_forward_naive
+
+    Returns a tuple of:
+    - dx: Gradient with respect to x
+    - dw: Gradient with respect to w
+    - db: Gradient with respect to b
+    """
+    x, w, b, conv_param = cache
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    F, C, HH, WW = w.shape
+    N, C, H, W = x.shape
+    Hp = 1 + (H + 2 * pad - HH) // stride
+    Wp = 1 + (W + 2 * pad - WW) // stride
+    npad = ((0, 0),(0,0), (pad,pad), (pad, pad))
+    padded_x = np.pad(x,pad_width = npad,mode ='constant', constant_values=0)
+    dx = np.zeros_like(x)
+    dx_working = np.zeros_like(padded_x)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+    npad = ((0, 0),(0,0), (HH-1,WW-1), (HH-1, WW-1))
+    padded_dout = np.pad(dout,pad_width = npad,mode ='constant', constant_values=0)
+    N,F,H_new,W_new = padded_dout.shape
+    N,F,Hout,Wout = dout.shape
+    #Calculation of dx
+    for i in range(N):
+        for l in range(0,H_new-HH+1,stride):
+            for k in range(0,W_new-WW+1,stride):
+                for c in range(C):
+                    for f in range(F):
+                        working_dout = padded_dout[i][f][l:l+HH,k:k+WW]
+                        working_w = w[f][c][:][:]
+                        working_w = (np.rot90(working_w,2))
+                        dx_working[i][c][l][k] = np.sum(working_w*working_dout)
+    
+    # Calculation of dw
+    
+        for l in range(0,H+(2*pad)-Hout+1,stride):
+            for k in range(0,H+(2*pad)-Hout+1,stride):
+                for c in range(C):
+                    for f in range(F):
+                        w_sum =0
+                        for i in range(N):
+                            working_dout = dout[i][f][:][:]
+                            working_x = padded_x[i][c][l:l+H,k:k+W]
+                            w_sum +=np.sum(working_dout*working_x)
+                        dw[f][c][l][k] = w_sum
+
+    
+    db = np.sum(dout)
+    ###########################################################################
+    # TODO: Implement the convolutional backward pass.                        #
+    ###########################################################################
+    pass
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    dx = dx_working[:,:,pad:-pad,pad:-pad]
+    return dx, dw, db
 def conv_backward_naive(dout, cache):
     """
     A naive implementation of the backward pass for a convolutional layer.
@@ -569,7 +804,51 @@ def conv_backward_naive(dout, cache):
     - dw: Gradient with respect to w
     - db: Gradient with respect to b
     """
-    dx, dw, db = None, None, None
+    x, w, b, conv_param = cache
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    F, C, HH, WW = w.shape
+    N, C, H, W = x.shape
+    Hp = 1 + (H + 2 * pad - HH) // stride
+    Wp = 1 + (W + 2 * pad - WW) // stride
+    npad = ((0, 0),(0,0), (pad,pad), (pad, pad))
+    padded_x = np.pad(x,pad_width = npad,mode ='constant', constant_values=0)
+    dx = np.zeros_like(x)
+    dx_working = np.zeros_like(padded_x)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+    npad = ((0, 0),(0,0), (HH-1,WW-1), (HH-1, WW-1))
+    padded_dout = np.pad(dout,pad_width = npad,mode ='constant', constant_values=0)
+    N,F,H_new,W_new = padded_dout.shape
+    N,F,Hout,Wout = dout.shape
+    #Calculation of dx
+    for i in range(N):
+        for l in range(0,H_new-HH+1,stride):
+            for k in range(0,W_new-WW+1,stride):
+                for c in range(C):
+                    x_sum=0
+                    for f in range(F):
+                        working_dout = padded_dout[i][f][l:l+HH,k:k+WW]
+                        working_w = w[f][c][:][:]
+                        working_w = (np.rot90(working_w,2))
+                        x_sum +=np.sum(working_w*working_dout)
+                    dx_working[i][c][l][k] = x_sum
+    
+    # Calculation of dw
+    
+        for l in range(0,H+(2*pad)-Hout+1,stride):
+            for k in range(0,H+(2*pad)-Hout+1,stride):
+                for c in range(C):
+                    for f in range(F):
+                        w_sum =0
+                        for i in range(N):
+                            working_dout = dout[i][f][:][:]
+                            working_x = padded_x[i][c][l:l+H,k:k+W]
+                            w_sum +=np.sum(working_dout*working_x)
+                        dw[f][c][l][k] = w_sum
+
+    
+    
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
@@ -577,8 +856,9 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
+    dx = dx_working[:,:,pad:-pad,pad:-pad]
+    db = np.sum(np.sum(np.sum(dout,axis =0),axis = 1),axis = 1)
     return dx, dw, db
-
 
 def max_pool_forward_naive(x, pool_param):
     """
@@ -599,15 +879,30 @@ def max_pool_forward_naive(x, pool_param):
       W' = 1 + (W - pool_width) / stride
     - cache: (x, pool_param)
     """
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    N,C,H,W = x.shape
+    stride = pool_param['stride']
+    H_out = 1 + (H - pool_height) // stride
+    W_out = 1 + (W - pool_width) // stride
+    outlist = []
+    index_list = []
     out = None
+    for n in range(N):
+        for c in range(C):
+            for i in range(0,H-pool_height+1,stride):
+                for j in range(0,W-pool_width+1,stride):
+                    working_x = x[n][c][i:i+pool_height,j:j+pool_width]
+                    outlist.append(np.max(working_x))
+                    index_list.append(np.unravel_index(working_x.argmax(), working_x.shape))
     ###########################################################################
     # TODO: Implement the max-pooling forward pass                            #
     ###########################################################################
-    pass
+    out = np.reshape(outlist, (N,C,H_out,W_out))
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    cache = (x, pool_param)
+    cache = (x,index_list,pool_param)
     return out, cache
 
 
@@ -622,13 +917,34 @@ def max_pool_backward_naive(dout, cache):
     Returns:
     - dx: Gradient with respect to x
     """
-    dx = None
+    x,index_list,pool_param = cache
+    N,C,H,W = x.shape
+    dx = np.zeros_like(x)
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+    N,C,H_new,W_new = dout.shape
+    index_list.reverse()
+    dout_list =dout.flatten().tolist()
+    dout_list.reverse()
+    for n in range(N):
+        for c in range(C):
+            for k in range(0,W-pool_width+1,pool_width):
+                for l in range(0,H-pool_height+1,pool_height):
+                    dout_to_be_mapped = dout_list.pop() 
+                    index=index_list.pop()
+                    working_dx = dx[n,c,k:k+pool_height,l:l+pool_width]
+                    working_dx[index] = dout_to_be_mapped
+                    dx[n,c,k:k+pool_width,l:l+pool_height]=working_dx
+                    
+                            
+                    
+                    
     ###########################################################################
     # TODO: Implement the max-pooling backward pass                           #
     ###########################################################################
-    pass
     ###########################################################################
-    #                             END OF YOUR CODE                            #
+    #                           END OF YOUR CODE                            #
     ###########################################################################
     return dx
 
