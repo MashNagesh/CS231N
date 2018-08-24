@@ -5,3 +5,9 @@ Assignment 1 updated
 - SVM classifier
 - Softmax Classifier
 - 2 layer neural network
+Assignment 2 updated
+- Fully Connected Nets
+- Batch Norm
+- Layer Norm
+- Dropout
+- CNN - 3 layer
